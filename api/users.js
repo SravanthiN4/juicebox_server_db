@@ -1,8 +1,8 @@
 const express = require('express');
 const usersRouter = express.Router();
-const {getAllUsers, getUserByUserName,createUser} = require('../db')
+const {getAllUsers, getUserByUserName,createUser, getUserById, updateUser} = require('../db')
 const jwt = require('jsonwebtoken');
-
+const {requireActiveUser} = require('./util')
 
 
 usersRouter.use((req,res,next) => {
@@ -90,6 +90,64 @@ usersRouter.post('/register',async(req,res,next) => {
     } catch ({ name, message }) {
         next({ name, message })
       } 
+})
+
+usersRouter.delete('/:userId',async(req,res,next) => {
+    try {
+        const userById = await getUserById(req.params.userId);
+        console.log(userById);
+       if(userById && userById.active && userById.id === req.user.id){
+            const updatedUser = await updateUser(userById.id, {active:false});
+            res.send({user:updatedUser});
+        } else {
+            next(userById ? {
+                name: "UnauthorizedUserError",
+                message: "You cannot delete a user which is not yours"
+            }: {
+                name: "UserNotFoundError",
+                message: "That user does not exist"
+            })
+        }
+        
+    } catch ({ name, message }) {
+        next({ name, message })
+      }
+})
+
+usersRouter.patch('/:userId',async(req,res,next) => {
+    const {userId} = req.params;
+    const {name, location, active} = req.body;
+
+    const updateFields = {};
+
+    if(name) {
+        updateFields.name = name;
+    }
+    if(location) {
+        updateFields.location = location;
+    } 
+    if(active) {
+        updateFields.active = active;
+    }
+    try {
+        const originalUser = await getUserById(userId);
+        if(originalUser.id === req.user.id) {
+            const updatedUser = await updateUser(userId,updateFields);
+            res.send({user : updatedUser})
+        } else {
+            next({
+                name: 'UnauthorizedUserError',
+                message:'You cannot update a user that is not yours'
+            })
+        }
+        
+    } catch ({name,message}) {
+        next({
+            name, message
+        })
+        
+    }
+
 })
 
 

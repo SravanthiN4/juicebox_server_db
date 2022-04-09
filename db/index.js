@@ -1,4 +1,5 @@
-const { Client } = require('pg') // imports the pg module
+const { Client } = require('pg'); // imports the pg module
+const { client_encoding } = require('pg/lib/defaults');
 
 const client = new Client('postgres://localhost:5432/juicebox-dev');
 
@@ -54,7 +55,7 @@ async function updateUser(id, fields = {}) {
 async function getAllUsers() {
   try {
     const { rows } = await client.query(`
-      SELECT id, username, name, location, active 
+      SELECT *
       FROM users;
     `);
 
@@ -225,6 +226,8 @@ async function getPostsByUser(userId) {
   }
 }
 
+
+
 async function getPostsByTagName(tagName) {
   try {
     const { rows: postIds } = await client.query(`
@@ -320,6 +323,20 @@ async function getAllTags() {
   }
 }
 
+async function getUserByUserName(username) {
+  try {
+    const {rows:[user]} = await client.query(`
+    SELECT *  
+    FROM users
+    where username = $1;`,[username]);
+
+    return user;
+    
+  } catch (error) {
+    throw error;
+  }
+}
+
 
 module.exports = {  
   client,
@@ -335,5 +352,6 @@ module.exports = {
   createTags,
   getAllTags,
   createPostTag,
-  addTagsToPost
+  addTagsToPost,
+  getUserByUserName
 }
